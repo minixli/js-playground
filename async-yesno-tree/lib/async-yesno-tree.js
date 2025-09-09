@@ -1,7 +1,5 @@
 /**
- * Decision Tree
- *
- * This decision tree only supports true/false condition now.
+ * Async YesNo Tree
  *
  * @author Minix Li
  */
@@ -9,11 +7,11 @@
 var utils = require('../utils/util');
 
 /**
- * DecisionTree constructor
+ * YesNoTree constructor
  *
  * @param {Function} cb
  */
-var DecisionTree = function(cb) {
+var YesNoTree = function(cb) {
   this.cb = cb;
   this.root = null;
   this.children = {};
@@ -27,8 +25,8 @@ var DecisionTree = function(cb) {
  *
  * @public
  */
-DecisionTree.prototype.setRoot = function(name, cb) {
-  this.root = this.children[name] = new DecisionNode(cb);
+YesNoTree.prototype.setRoot = function(name, cb) {
+  this.root = this.children[name] = new YesNoNode(cb);
 };
 
 /**
@@ -41,30 +39,30 @@ DecisionTree.prototype.setRoot = function(name, cb) {
  *
  * @public
  */
-DecisionTree.prototype.addChild = function(cname, pname, cond, cb) {
-  var child = new DecisionNode(cb);
+YesNoTree.prototype.addChild = function(cname, pname, cond, cb) {
+  var child = new YesNoNode(cb);
 
   this.children[cname] = child;
   this.children[pname].append(cond, child);
 };
 
 /**
- * Start decisions
+ * Start traverse
  *
  * @public
  */
-DecisionTree.prototype.startDecisions = function() {
+YesNoTree.prototype.traverse = function() {
   // feed an empty context
-  this.root.decide(this.cb, {});
+  this.root.evaluate(this.cb, {});
 };
 
 /**
- * DecisionNode constructor
+ * YesNoNode constructor
  *
  * @param {Function} cb
  */
-var DecisionNode = function(cb) {
-  this.cb = cb; // decision callback
+var YesNoNode = function(cb) {
+  this.cb = cb; // evaluation callback
   this.leftChild = null;
   this.rightChild = null;
 };
@@ -77,19 +75,19 @@ var DecisionNode = function(cb) {
  *
  * @public
  */
-DecisionNode.prototype.append = function(cond, child) {
+YesNoNode.prototype.append = function(cond, child) {
   cond ? (this.leftChild = child) : (this.rightChild = child);
 };
 
 /**
- * Decide and sink into the next decision node
+ * Evaluate and sink into the next yesno node
  *
  * @param {Function} cb
  * @param {Object} context
  *
  * @public
  */
-DecisionNode.prototype.decide = function(cb, context) {
+YesNoNode.prototype.evaluate = function(cb, context) {
   var self = this;
 
   utils.invokeCallback(this.cb, function(err, cond, res) {
@@ -106,7 +104,7 @@ DecisionNode.prototype.decide = function(cb, context) {
     cond ? (child = self.leftChild) : (child = self.rightChild);
 
     if (child) {
-      child.decide(cb, context);
+      child.evaluate(cb, context);
     } else {
       utils.invokeCallback(cb, null, context);
     }
@@ -114,31 +112,31 @@ DecisionNode.prototype.decide = function(cb, context) {
 };
 
 /**
- * Auto decision
+ * Auto run
  *
- * @param {Object} decisions
+ * @param {Object} specs
  * @param {Function} cb
  */
-var auto = function(decisions, cb) {
-  var tree = new DecisionTree(cb);
+var autoRunTree = function(specs, cb) {
+  var tree = new YesNoTree(cb);
 
-  for (var name in decisions) {
-    var value = decisions[name];
+  for (var name in specs) {
+    var spec = specs[name];
 
     // set tree root
-    if (typeof value == 'function') {
-      tree.setRoot(name, value);
+    if (typeof spec == 'function') {
+      tree.setRoot(name, spec);
     }
 
     // append child
-    if (Array.isArray(value)) {
-      var pname = value[0], cond = value[1], cb = value[2];
+    if (Array.isArray(spec)) {
+      var pname = spec[0], cond = spec[1], cb = spec[2];
       tree.addChild(name, pname, cond, cb);
     }
   }
 
-  tree.startDecisions();
+  tree.traverse();
 };
 
-// export auto method
-module.exports = { 'auto': auto };
+// export autoRunTree method
+module.exports = { 'autoRunTree': autoRunTree };
