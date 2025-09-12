@@ -31,7 +31,7 @@ YesNoTree.prototype.setRoot = function(name, cb) {
 };
 
 /**
- * Add node into the tree
+ * Add child node into the tree
  *
  * @param {String} cname
  * @param {String} pname
@@ -40,7 +40,7 @@ YesNoTree.prototype.setRoot = function(name, cb) {
  *
  * @public
  */
-YesNoTree.prototype.addNode = function(cname, pname, cond, cb) {
+YesNoTree.prototype.addChildNode = function(cname, pname, cond, cb) {
   var node = new YesNoNode(cb);
 
   this.nodes[cname] = node;
@@ -121,22 +121,16 @@ YesNoNode.prototype.evaluate = function(cb) {
  * @param {Function} cb
  */
 var autoRunTree = function(specs, cb) {
-  var tree = new YesNoTree(cb);
+  var final = specs.final;
+  var tree = new YesNoTree(final);
 
-  for (var name in specs) {
-    var spec = specs[name];
+  var root = specs.root;
+  tree.setRoot(root.name, root.cb);
 
-    // set tree root
-    if (typeof spec == 'function') {
-      tree.setRoot(name, spec);
-    }
-
-    // append child
-    if (Array.isArray(spec)) {
-      var pname = spec[0], cond = spec[1], cb = spec[2];
-      tree.addNode(name, pname, cond, cb);
-    }
-  }
+  var children = specs.children;
+  children.forEach(function(child) {
+    tree.addChildNode(child.name, child.pname, child.cond, child.cb);
+  })
 
   tree.traverse();
 };
