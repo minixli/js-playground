@@ -86,7 +86,7 @@ YesNoTree.prototype.traverse = function(node) {
  * @param {Function} cb
  */
 var YesNoNode = function(cb) {
-  this.cb = cb; // evaluation callback
+  this.cb = cb;
   this.leftChild = null;
   this.rightChild = null;
 };
@@ -115,12 +115,12 @@ YesNoNode.prototype.evaluate = function(cb) {
 }
 
 /**
- * Auto run
+ * Build and run
  *
  * @param {Object} specs
  * @param {Function} cb
  */
-var autoRunTree = function(specs, cb) {
+var buildAndRun = function(specs, cb) {
   var final = specs.final;
   var tree = new YesNoTree(final);
 
@@ -135,5 +135,5 @@ var autoRunTree = function(specs, cb) {
   tree.traverse();
 };
 
-// export autoRunTree method
-module.exports = { 'autoRunTree': autoRunTree };
+// export buildAndRun method
+module.exports = { 'buildAndRun': buildAndRun };

@@ -23,7 +23,7 @@
 var yesnotree = require('../index');
 var util = require('../utils/util');
 
-yesnotree.autoRunTree({
+yesnotree.buildAndRun({
   'root': {
     'name': 'specA',
     'cb': function(cb, ctx) {
