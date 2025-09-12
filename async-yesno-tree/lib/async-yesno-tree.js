@@ -13,8 +13,9 @@ var utils = require('../utils/util');
  */
 var YesNoTree = function(cb) {
   this.cb = cb;
+  this.ctx = {};
   this.root = null;
-  this.children = {};
+  this.nodes = {};
 };
 
 /**
@@ -26,11 +27,11 @@ var YesNoTree = function(cb) {
  * @public
  */
 YesNoTree.prototype.setRoot = function(name, cb) {
-  this.root = this.children[name] = new YesNoNode(cb);
+  this.root = this.nodes[name] = new YesNoNode(cb);
 };
 
 /**
- * Add child
+ * Add node into the tree
  *
  * @param {String} cname
  * @param {String} pname
@@ -39,21 +40,44 @@ YesNoTree.prototype.setRoot = function(name, cb) {
  *
  * @public
  */
-YesNoTree.prototype.addChild = function(cname, pname, cond, cb) {
-  var child = new YesNoNode(cb);
+YesNoTree.prototype.addNode = function(cname, pname, cond, cb) {
+  var node = new YesNoNode(cb);
 
-  this.children[cname] = child;
-  this.children[pname].append(cond, child);
+  this.nodes[cname] = node;
+  this.nodes[pname].appendChild(cond, node);
 };
 
 /**
- * Start traverse
+ * Traverse the tree
  *
  * @public
  */
-YesNoTree.prototype.traverse = function() {
-  // feed an empty context
-  this.root.evaluate(this.cb, {});
+YesNoTree.prototype.traverse = function(node) {
+  if (!node) {
+    node = this.root;
+  }
+
+  var self = this;
+  var cb = this.cb;
+  var ctx = this.ctx;
+  node.evaluate(function(err, cond, res) {
+    for (var attr in res) {
+      ctx[attr] = res[attr];
+    }
+
+    if (err) {
+      utils.invokeCallback(cb, err, ctx);
+      return;
+    }
+
+    var child;
+    cond ? (child = node.leftChild) : (child = node.rightChild);
+    if (child) {
+      self.traverse(child);
+    } else {
+      utils.invokeCallback(cb, null, ctx);
+    }
+  });
 };
 
 /**
@@ -75,41 +99,20 @@ var YesNoNode = function(cb) {
  *
  * @public
  */
-YesNoNode.prototype.append = function(cond, child) {
+YesNoNode.prototype.appendChild = function(cond, child) {
   cond ? (this.leftChild = child) : (this.rightChild = child);
 };
 
 /**
- * Evaluate and sink into the next yesno node
+ * Evaluate
  *
  * @param {Function} cb
- * @param {Object} context
  *
  * @public
  */
-YesNoNode.prototype.evaluate = function(cb, context) {
-  var self = this;
-
-  utils.invokeCallback(this.cb, function(err, cond, res) {
-    for (var attr in res) {
-      context[attr] = res[attr];
-    }
-
-    if (err) {
-      utils.invokeCallback(cb, err, context);
-      return;
-    }
-
-    var child;
-    cond ? (child = self.leftChild) : (child = self.rightChild);
-
-    if (child) {
-      child.evaluate(cb, context);
-    } else {
-      utils.invokeCallback(cb, null, context);
-    }
-  }, context);
-};
+YesNoNode.prototype.evaluate = function(cb) {
+  utils.invokeCallback(this.cb, cb);
+}
 
 /**
  * Auto run
@@ -131,7 +134,7 @@ var autoRunTree = function(specs, cb) {
     // append child
     if (Array.isArray(spec)) {
       var pname = spec[0], cond = spec[1], cb = spec[2];
-      tree.addChild(name, pname, cond, cb);
+      tree.addNode(name, pname, cond, cb);
     }
   }
 
